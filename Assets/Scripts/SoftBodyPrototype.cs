@@ -1,9 +1,16 @@
-﻿using System.Collections;
+﻿// SoftBodyPrototype
+// Author: 
+// Chris March 
+// https://github.com/chrismarch/SoftBodyPrototype
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 // Simulates soft body physics using point masses connected by springs, and pressure on the polygons
 // on the hull formed by the springs to simulate a contained fluid.
+// This is a prototype, constructed with one MonoBehavior, and is intended to be refactored to
+// use more performant and modular coding practices, such as the ECS and Job System.
 public class SoftBodyPrototype : MonoBehaviour
 {
     #region soft body simulation inspector coefficients
