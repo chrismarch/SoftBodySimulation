@@ -302,16 +302,22 @@ public class SoftBodyPrototype : MonoBehaviour
             Gizmos.DrawSphere(Positions[i], .1f);
         }
 
-        // draw the springs used to form the normals on the faces of the point mass hull and draw
-        // the normals
+        // draw the springs used to form the faces of the point mass hull and draw
+        // their normals
         for (int i = 0; i < FacePointIndexes.GetLength(0); ++i)
         {
             Vector3 a = Positions[FacePointIndexes[i, 0]];
             Vector3 b = Positions[FacePointIndexes[i, 1]];
             Vector3 c = Positions[FacePointIndexes[i, 2]];
+            Vector3 d = Positions[FacePointIndexes[i, 3]];
+
+            Gizmos.color = Color.white;
             Gizmos.DrawLine(a, b);
             Gizmos.DrawLine(b, c);
-            
+            Gizmos.DrawLine(c, d);
+            Gizmos.DrawLine(d, a);
+
+            Gizmos.color = Color.blue;
             a -= b;
             c -= b;
             b = Vector3.Cross(a, c).normalized;
@@ -319,7 +325,7 @@ public class SoftBodyPrototype : MonoBehaviour
                             transform.position + b * (HullHalfWidth + 1.0f));
         }
 
-        // draw the springs that cross inside the hull
+        // draw the springs that cross inside the hull and hull faces
         Gizmos.color = Color.yellow;
         for (int i = 0; i < InternalSpringPointIndexes.GetLength(0); ++i)
         {
