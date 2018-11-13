@@ -21,5 +21,5 @@ First open Scenes/OneSlimePrototype, and press play. To view the point mass loca
 
 ## Author
 Chris March
-https://github.com/chrismarch/SoftBodySimulation
+https://github.com/chrismarch
 
