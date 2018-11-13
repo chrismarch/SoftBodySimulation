@@ -1,7 +1,7 @@
 # Soft Body Simulation
 
 ## Summary
-This is a quick exploration of soft body simulation. I'm looking into simple methods for deforming meshes in response to their collision with other objects, as a way to create procedural animation for characters made of jelly (slimes!).
+This is a quick exploration of soft body simulation. I'm looking into simple methods for deforming meshes in response to their collision with other objects, specifically, character meshes made of jelly (slimes!). All animations in this project are procedural, and result from the soft body simulation.
 
 This project has been tested with Unity 2018.2.15f1 Personal under Windows 8.1 64-bit.
 
@@ -23,7 +23,9 @@ I have written this code as a personal project. My code can be found in the Asse
 * Experiment with the public coefficient properties to find values that lead to numerically stable simulation, while allowing for a pleasing amount of deformation
 * Assemble point masses in a bounding box shape, and create a spring lattice, adding springs and experimenting with coefficients until the simulation doesn't collapse over time
 * Combine pressure simulation with the mass spring system, to simulate a volume of air
-* Alter the pressure simulation to attempt to maintain constant volume, similar to a water balloon (since water doesn't noticeably compress under typical forces). 
+* Alter the pressure simulation to attempt to maintain constant volume, similar to a water balloon (since water doesn't noticeably compress under typical forces).
+* Apply a nonuniform scale on a mesh associated with the soft body simulation
+* Give the soft body a periodic jump behavior, to keep things lively
 * Write the code
 
 ## Author
