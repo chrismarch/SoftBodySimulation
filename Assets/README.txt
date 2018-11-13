@@ -12,11 +12,10 @@ First open Scenes/OneSlimePrototype, and press play. To view the point mass loca
 I have written this code as a personal project. My code can be found in the Assets/Scripts/ directory, as *.cs files (ignore *.meta files).
 
 ## My Next Steps
-* Clean up the code
+* Simulate lots of soft bodies, with some variety of meshes, in a new test scene. Evaluate frame rate, and check that dimensions of soft body can be configured via the transform's scale
 * Create a high performance ECS/Job system version, perhaps without using Unity's collision system
 * Create a free form deformation shader that uses the point mass locations, or perhaps just applies shears
-* Better enforce the fixed volume of the softbody, modelling an approximately uncompressible fluid like water
-* Apply the soft body simulation to a variety of meshes
+* Better enforce the fixed volume of the softbody during compression, modelling a fluid like water, which typically stays close to constant volume
 
 ## My Previous Steps
 * See how many springs I can remove until the simulation destabilizes
@@ -27,6 +26,7 @@ I have written this code as a personal project. My code can be found in the Asse
 * Apply a nonuniform scale on a mesh associated with the soft body simulation
 * Give the soft body a periodic jump behavior, to keep things lively
 * Create a procedural animation for the build up to the jump by negating the instantaneous jump velocity (impulse) to drive the soft body into the ground, which causes it to compress and then rebound into the air
+* Clean up the prototype (MonoBehavior) code a bit
 * Write the code
 
 ## Author

@@ -15,66 +15,75 @@ using UnityEngine;
 public class SoftBodyPrototype : MonoBehaviour
 {
     #region soft body simulation inspector coefficients
-    public float SpringStiffness = 30.0f;
+    public float SpringStiffness = 50.0f;
     public float SpringDamping = 1.0f;
-    public float SpringRestLength = 1.0f;
-    public float InternalSpringRestLength = 1.732051f;
-    public float PressureMultiplier = 4.0f;
-    public float HullRestVolume = 1.0f;
-    public float HullHalfWidth = 0.5f;
+    public float PressureMultiplier = 50.0f;
     public float BounceCoefficient = .05f;
     public float SlideCoefficient = .99f;
     #endregion
 
     #region jumping: inspector properties and private state
-    public float JumpSpeed = 5.0f;
-    public float JumpWaitMin = 2.0f;
-    public float JumpWaitMax = 5.0f;
+    // negative JumpSpeed creates a procedural "jump build up" animation and then the body rebounds
+    public float JumpSpeed = -8.5f; 
+    public float JumpWaitMin = 3.0f;
+    public float JumpWaitMax = 4.0f;
 
     private float JumpWait;
     private float LandedTime;
+    #endregion
+
+    #region point mass private state
+    private Vector3[] PointMassAccelerations;
+    private Vector3[] PointMassVelocities;
+    private Vector3[] PointMassPositions;
+    #endregion
+
+    #region private state, read only after Awake
+    private int[,] FacePointMassIndexes;
+    private int[,] DiagonalSpringPointMassIndexes;
+    private float[] SpringRestLengths;
+    private float HullRestVolume;
     #endregion
 
     // components to cache for use during updates
     // TODO write an ECS/Job System version and see how the perf. is for naive custom collision testing
     private BoxCollider TriggerCollider;
 
-    #region point mass private state
-    private Vector3[] Accelerations;
-    private Vector3[] Velocities;
-    private Vector3[] Positions;
-    private int[,] FacePointIndexes;
-    private int[,] DiagonalSpringPointIndexes;
-    #endregion
-
     private void Awake()
     {
         TriggerCollider = GetComponent<BoxCollider>();
 
-        // this soft body simulation uses the simplest mass spring latice to enclose a mesh,
-        // a bounding box
-        Accelerations = new Vector3[8];
-        Velocities = new Vector3[8];
-        Positions = new Vector3[8];
+        // this soft body simulation uses a bounding box shaped (for simplicity) mass spring lattice 
+        // to enclose the mesh to be deformed
+        PointMassAccelerations = new Vector3[8];
+        PointMassVelocities = new Vector3[8];
+        PointMassPositions = new Vector3[8];
 
-        Positions[0] = transform.TransformPoint(new Vector3(HullHalfWidth, HullHalfWidth, HullHalfWidth));
-        Positions[1] = transform.TransformPoint(new Vector3(HullHalfWidth, HullHalfWidth, -HullHalfWidth));
-        Positions[2] = transform.TransformPoint(new Vector3(-HullHalfWidth, HullHalfWidth, -HullHalfWidth));
-        Positions[3] = transform.TransformPoint(new Vector3(-HullHalfWidth, HullHalfWidth, HullHalfWidth));
+        float halfX = transform.localScale.x * .5f;
+        float halfY = transform.localScale.y * .5f;
+        float halfZ = transform.localScale.z * .5f;
+        PointMassPositions[0] = transform.TransformPoint(new Vector3(halfX, halfY, halfZ));
+        PointMassPositions[1] = transform.TransformPoint(new Vector3(halfX, halfY, -halfZ));
+        PointMassPositions[2] = transform.TransformPoint(new Vector3(-halfX, halfY, -halfZ));
+        PointMassPositions[3] = transform.TransformPoint(new Vector3(-halfX, halfY, halfZ));
 
-        Positions[4] = transform.TransformPoint(new Vector3(HullHalfWidth, -HullHalfWidth, HullHalfWidth));
-        Positions[5] = transform.TransformPoint(new Vector3(HullHalfWidth, -HullHalfWidth, -HullHalfWidth));
-        Positions[6] = transform.TransformPoint(new Vector3(-HullHalfWidth, -HullHalfWidth, -HullHalfWidth));
-        Positions[7] = transform.TransformPoint(new Vector3(-HullHalfWidth, -HullHalfWidth, HullHalfWidth));
+        PointMassPositions[4] = transform.TransformPoint(new Vector3(halfX, -halfY, halfZ));
+        PointMassPositions[5] = transform.TransformPoint(new Vector3(halfX, -halfY, -halfZ));
+        PointMassPositions[6] = transform.TransformPoint(new Vector3(-halfX, -halfY, -halfZ));
+        PointMassPositions[7] = transform.TransformPoint(new Vector3(-halfX, -halfY, halfZ));
 
-        // 6 squares form the faces of the point mass hull
-        FacePointIndexes =
+        // Initialize the arrays that hold point mass indexes
+
+        // The first index array has sets of 4 indexes for each of the 6 squares
+        // that form the faces of the point mass hull (as a bounding box).
+        FacePointMassIndexes =
                 new int[6, 4]
-                    { {3, 2, 1, 0}, {0, 4, 5, 1}, {1, 5, 6, 2}, {2, 6, 7, 3},
-                    {3, 7, 4, 0}, {4, 5, 6, 7} };
+                    { {3, 2, 1, 0}, {1, 5, 4, 0}, {2, 6, 5, 1}, {3, 7, 6, 2},
+                    {0, 4, 7, 3}, {4, 5, 6, 7} };
 
-        // springs not formed by face edges
-        DiagonalSpringPointIndexes =
+        // The second index array enumerates the remaining springs, which are diagonal, since
+        // they are not on the edges of the faces, and each spring is defined as a pair of indexes.
+        DiagonalSpringPointMassIndexes =
             new int[16, 2]
                 {
                     // crossing inside hull
@@ -88,6 +97,39 @@ public class SoftBodyPrototype : MonoBehaviour
                     {3, 4}, {7, 0}, 
                     {4, 6}, {5, 7}, 
                 };
+
+        // calculate spring rest lengths
+        int springIndex = 0;
+        int numFaceEdgeSprings = FacePointMassIndexes.GetLength(0) * FacePointMassIndexes.GetLength(1);
+        int numDiagonalSprings = DiagonalSpringPointMassIndexes.GetLength(0);
+        SpringRestLengths = new float[numFaceEdgeSprings + numDiagonalSprings];
+
+        // first the springs on the face edges of the hull
+        int numFaces = FacePointMassIndexes.GetLength(0);
+        int numPtsPerFace = FacePointMassIndexes.GetLength(1);
+        for (int i = 0; i < numFaces; ++i)
+        {
+            for (int j = 0; j < numPtsPerFace; ++j)
+            {
+                int pt0Index = FacePointMassIndexes[i, j];
+                int pt1Index = FacePointMassIndexes[i, (j + 1) % numPtsPerFace];
+                SpringRestLengths[springIndex] =
+                    (PointMassPositions[pt0Index] - PointMassPositions[pt1Index]).magnitude;
+                ++springIndex;
+            }
+        }
+
+        // now accumulate the springs inside the hull
+        for (int i = 0; i < numDiagonalSprings; ++i)
+        {
+            int pt0Index = DiagonalSpringPointMassIndexes[i, 0];
+            int pt1Index = DiagonalSpringPointMassIndexes[i, 1];
+            SpringRestLengths[springIndex] =
+                (PointMassPositions[pt0Index] - PointMassPositions[pt1Index]).magnitude;
+            ++springIndex;
+        }
+
+        HullRestVolume = transform.localScale.x * transform.localScale.y * transform.localScale.z;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -113,25 +155,25 @@ public class SoftBodyPrototype : MonoBehaviour
                                        out depenetrationDir, out depenetrationDist))
         {
             //Debug.LogFormat("Collision normal {0}", depenetrationDir);
-            for (int i = 0; i < Positions.Length; ++i)
+            for (int i = 0; i < PointMassPositions.Length; ++i)
             {
-                Vector3 p = Positions[i];
+                Vector3 p = PointMassPositions[i];
                 if (other.bounds.Contains(p))
                 {
                     // clamp interpenetrating point mass to surface of other collider
-                    Positions[i] = 
+                    PointMassPositions[i] = 
                         other.ClosestPoint(p + depenetrationDir * (depenetrationDist + 1.0f));
 
                     // reflect component of velocity along other collider normal
                     // while maintaining the remainder of velocity, but reduce by
                     // energy loss coefficient
                     // (approximate average contact normals as depenetration direction)
-                    float speedAlongNormalSigned = Vector3.Dot(Velocities[i], depenetrationDir);
+                    float speedAlongNormalSigned = Vector3.Dot(PointMassVelocities[i], depenetrationDir);
                     float speedAlongNormalSign = Mathf.Sign(speedAlongNormalSigned);
                     Vector3 velocityAlongNormal = speedAlongNormalSigned * depenetrationDir;
-                    Vector3 slideVelocity = Velocities[i] - velocityAlongNormal;
+                    Vector3 slideVelocity = PointMassVelocities[i] - velocityAlongNormal;
                     velocityAlongNormal *= speedAlongNormalSign; // reflect if opposing
-                    Velocities[i] = 
+                    PointMassVelocities[i] = 
                         (speedAlongNormalSign >= 0.0f ? 1.0f : BounceCoefficient) * 
                         velocityAlongNormal + slideVelocity * SlideCoefficient;                        
                 }
@@ -144,42 +186,46 @@ public class SoftBodyPrototype : MonoBehaviour
     void FixedUpdate()
     {
         // accumulate forces for this update, start with gravity
-        for (int i = 0; i < Accelerations.Length; ++i)
+        for (int i = 0; i < PointMassAccelerations.Length; ++i)
         {
             // simplify force to acceleration, as mass == 1
-            Accelerations[i] = Physics.gravity;
+            PointMassAccelerations[i] = Physics.gravity;
         }
-            
+
         // now accumulate spring forces:
+        int springIndex = 0;
         // first the springs on the face edges of the hull
-        int numPtsPerFace = FacePointIndexes.GetLength(1);
-        for (int i = 0; i < FacePointIndexes.GetLength(0); ++i)
+        int numFaces = FacePointMassIndexes.GetLength(0);
+        int numPtsPerFace = FacePointMassIndexes.GetLength(1);
+        for (int i = 0; i < numFaces; ++i)
         {
             for (int j = 0; j < numPtsPerFace; ++j)
             {
-                int pt0Index = FacePointIndexes[i, j];
-                int pt1Index = FacePointIndexes[i, (j + 1) % numPtsPerFace];
+                int pt0Index = FacePointMassIndexes[i, j];
+                int pt1Index = FacePointMassIndexes[i, (j + 1) % numPtsPerFace];
                 Vector3 springForce = 
-                    CalcSpringForce(pt0Index, pt1Index, SpringRestLength, SpringStiffness, SpringDamping);
+                    CalcSpringForce(pt0Index, pt1Index, SpringRestLengths[springIndex], 
+                                    SpringStiffness, SpringDamping);
 
                 // mass == 1, so a = F/m = F
-                Accelerations[pt0Index] += springForce;
-                Accelerations[pt1Index] -= springForce;
+                PointMassAccelerations[pt0Index] += springForce;
+                PointMassAccelerations[pt1Index] -= springForce;
+                ++springIndex;
             }
         }
 
         // now accumulate the springs inside the hull
-        // TODO simplify this code by having all the spring point indexes in the same array
-        for (int i = 0; i < DiagonalSpringPointIndexes.GetLength(0); ++i)
+        int numDiagonalSprings = DiagonalSpringPointMassIndexes.GetLength(0);
+        for (int i = 0; i < numDiagonalSprings; ++i)
         {
-            int pt0Index = DiagonalSpringPointIndexes[i, 0];
-            int pt1Index = DiagonalSpringPointIndexes[i, 1];
-            // TODO clean up the rest length code by precalculating an array
+            int pt0Index = DiagonalSpringPointMassIndexes[i, 0];
+            int pt1Index = DiagonalSpringPointMassIndexes[i, 1];
             Vector3 springForce =
-                CalcSpringForce(pt0Index, pt1Index, i < 4 ? InternalSpringRestLength : 1.4142f,
-                    SpringStiffness, SpringDamping);
-            Accelerations[pt0Index] += springForce;
-            Accelerations[pt1Index] -= springForce;
+                CalcSpringForce(pt0Index, pt1Index, SpringRestLengths[springIndex],
+                                SpringStiffness, SpringDamping);
+            PointMassAccelerations[pt0Index] += springForce;
+            PointMassAccelerations[pt1Index] -= springForce;
+            ++springIndex;
         }
 
         // estimate volume and pressure forces, similar to pseudocode: https://arxiv.org/ftp/physics/papers/0407/0407003.pdf
@@ -194,26 +240,30 @@ public class SoftBodyPrototype : MonoBehaviour
         Debug.Assert(numPtsPerFace == 4); // assume rectangles
 
         // TODO cache normals and area instead of recalculating
-        for (int i = 0; i < FacePointIndexes.GetLength(0); ++i)
+        for (int i = 0; i < FacePointMassIndexes.GetLength(0); ++i)
         {
-            Vector3 a = Positions[FacePointIndexes[i, 0]];
-            Vector3 b = Positions[FacePointIndexes[i, 1]];
-            Vector3 c = Positions[FacePointIndexes[i, 2]];
+            Vector3 a = PointMassPositions[FacePointMassIndexes[i, 0]];
+            Vector3 b = PointMassPositions[FacePointMassIndexes[i, 1]];
+            Vector3 c = PointMassPositions[FacePointMassIndexes[i, 2]];
 
-            Vector3 edge0 = a - b;
-            Vector3 edge1 = c - b;
-            surfaceArea += edge0.magnitude * edge1.magnitude;
+            Vector3 faceNormal = CalcCross(a, b, c);
+            float faceArea = faceNormal.magnitude; // magnitude of cross is area of parallelogram
+            surfaceArea += faceArea;
         }
 
-        for (int i = 0; i < FacePointIndexes.GetLength(0); ++i)
+        for (int i = 0; i < FacePointMassIndexes.GetLength(0); ++i)
         {
-            Vector3 a = Positions[FacePointIndexes[i, 0]];
-            Vector3 b = Positions[FacePointIndexes[i, 1]];
-            Vector3 c = Positions[FacePointIndexes[i, 2]];
+            Vector3 a = PointMassPositions[FacePointMassIndexes[i, 0]];
+            Vector3 b = PointMassPositions[FacePointMassIndexes[i, 1]];
+            Vector3 c = PointMassPositions[FacePointMassIndexes[i, 2]];
 
-            Vector3 edge0 = a - b;
-            Vector3 edge1 = c - b;
-            float area = edge0.magnitude * edge1.magnitude;
+            Vector3 faceNormal = CalcCross(a, b, c);
+            float faceArea = faceNormal.magnitude; // magnitude of cross is area of parallelogram
+            if (faceArea > 0.0f)
+            {
+                // normalize the cross product
+                faceNormal /= faceArea;
+            }
 
             // approximate force distribution through fluid by using more force on the 
             // faces of the hull that have a smaller area (assuming the rest area for each face
@@ -221,13 +271,12 @@ public class SoftBodyPrototype : MonoBehaviour
             //
             // TODO refine the pressure algorithm so that the volume doesn't compress as much
             //
-            float pressureForceMult = 1.0f - area / surfaceArea;
-            pressureForceMult *= pressureForceMult;
-            Vector3 normal = Vector3.Cross(edge0, edge1).normalized;
+            float pressureForceMult = 1.0f - faceArea / surfaceArea;
+            pressureForceMult *= pressureForceMult;            
             for (int j = 0; j < numPtsPerFace; ++j)
             {
-                Accelerations[FacePointIndexes[i, j]] +=
-                    normal * (PressureMultiplier * pressureForceMult * (1.0f - volumeRatio));
+                PointMassAccelerations[FacePointMassIndexes[i, j]] +=
+                    faceNormal * (PressureMultiplier * pressureForceMult * (1.0f - volumeRatio));
             }
         }
 
@@ -241,17 +290,17 @@ public class SoftBodyPrototype : MonoBehaviour
 
         // solve for velocities and positions of point masses, and recalculate the bounding box
         Bounds ptBounds = new Bounds();
-        for (int i = 0; i < Positions.Length; ++i)
+        for (int i = 0; i < PointMassPositions.Length; ++i)
         {
-            Velocities[i] += Accelerations[i] * Time.fixedDeltaTime + jumpVelocity;
-            Positions[i] += Velocities[i] * Time.fixedDeltaTime;
+            PointMassVelocities[i] += PointMassAccelerations[i] * Time.fixedDeltaTime + jumpVelocity;
+            PointMassPositions[i] += PointMassVelocities[i] * Time.fixedDeltaTime;
             if (i == 0)
             {
-                ptBounds = new Bounds(Positions[i], Vector3.zero);
+                ptBounds = new Bounds(PointMassPositions[i], Vector3.zero);
             }
             else
             {
-                ptBounds.Encapsulate(Positions[i]);
+                ptBounds.Encapsulate(PointMassPositions[i]);
             }
         }
 
@@ -262,6 +311,14 @@ public class SoftBodyPrototype : MonoBehaviour
         transform.localScale = ptBounds.size;
     }
 
+    // Returns the cross product: (a - b) X (c - b)
+    Vector3 CalcCross(Vector3 a, Vector3 b, Vector3 c)
+    {
+        Vector3 bToA = a - b;
+        Vector3 btoC = c - b;
+        return Vector3.Cross(bToA, btoC);
+    }
+
     // Calculates the force from the spring to apply to point mass 0, 
     // and the inverse for point mass 1
     //
@@ -270,7 +327,7 @@ public class SoftBodyPrototype : MonoBehaviour
     Vector3 CalcSpringForce(int pt0Index, int pt1Index, float restLength, float stiffness, 
                             float damping)
     {
-        Vector3 pt0ToPt1 = Positions[pt1Index] - Positions[pt0Index];
+        Vector3 pt0ToPt1 = PointMassPositions[pt1Index] - PointMassPositions[pt0Index];
         float springLength = pt0ToPt1.magnitude;
         if (springLength == 0.0f)
         {
@@ -283,7 +340,7 @@ public class SoftBodyPrototype : MonoBehaviour
             pt0ToPt1 /= springLength;
         }
         float stretch = springLength - restLength;
-        Vector3 relativePtVelocity = Velocities[pt1Index] - Velocities[pt0Index];
+        Vector3 relativePtVelocity = PointMassVelocities[pt1Index] - PointMassVelocities[pt0Index];
 
         // spring force magnitude =
         //      delta from rest length * stiffness coefficient + 
@@ -296,53 +353,53 @@ public class SoftBodyPrototype : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        if (Positions == null || Positions.Length < 4)
+        if (PointMassPositions == null || PointMassPositions.Length < 4)
             return;
 
         // draw the top point masses
         Gizmos.color = Color.red;
         for (int i = 0; i < 4; ++i)
         {
-            Gizmos.DrawSphere(Positions[i], .1f);
+            Gizmos.DrawSphere(PointMassPositions[i], .1f);
         }
 
         // draw the bottom point masses
         Gizmos.color = Color.blue;
-        for (int i = 4; i < Positions.Length; ++i)
+        for (int i = 4; i < PointMassPositions.Length; ++i)
         {
-            Gizmos.DrawSphere(Positions[i], .1f);
+            Gizmos.DrawSphere(PointMassPositions[i], .1f);
         }
 
         // draw the springs used to form the faces of the point mass hull and draw
         // their normals
-        for (int i = 0; i < FacePointIndexes.GetLength(0); ++i)
+        for (int i = 0; i < FacePointMassIndexes.GetLength(0); ++i)
         {
-            Vector3 a = Positions[FacePointIndexes[i, 0]];
-            Vector3 b = Positions[FacePointIndexes[i, 1]];
-            Vector3 c = Positions[FacePointIndexes[i, 2]];
-            Vector3 d = Positions[FacePointIndexes[i, 3]];
+            Vector3 a = PointMassPositions[FacePointMassIndexes[i, 0]];
+            Vector3 b = PointMassPositions[FacePointMassIndexes[i, 1]];
+            Vector3 c = PointMassPositions[FacePointMassIndexes[i, 2]];
+            Vector3 d = PointMassPositions[FacePointMassIndexes[i, 3]];
 
+            // face edges
             Gizmos.color = Color.white;
             Gizmos.DrawLine(a, b);
             Gizmos.DrawLine(b, c);
             Gizmos.DrawLine(c, d);
             Gizmos.DrawLine(d, a);
 
-            Gizmos.color = Color.blue;
-            a -= b;
-            c -= b;
-            b = Vector3.Cross(a, c).normalized;
-            Gizmos.DrawLine(transform.position + b * HullHalfWidth,
-                            transform.position + b * (HullHalfWidth + 1.0f));
+            // face normals
+            Gizmos.color = Color.blue;        
+            Vector3 faceNormal = CalcCross(a, b, c).normalized;
+            Vector3 faceMidpoint = Vector3.Lerp(a, c, .5f);
+            Gizmos.DrawLine(faceMidpoint, faceMidpoint + faceNormal);
         }
 
         // draw the springs that cross inside the hull and hull faces
         Gizmos.color = Color.yellow;
-        for (int i = 0; i < DiagonalSpringPointIndexes.GetLength(0); ++i)
+        for (int i = 0; i < DiagonalSpringPointMassIndexes.GetLength(0); ++i)
         {
-            int pt0Index = DiagonalSpringPointIndexes[i, 0];
-            int pt1Index = DiagonalSpringPointIndexes[i, 1];
-            Gizmos.DrawLine(Positions[pt0Index], Positions[pt1Index]);
+            int pt0Index = DiagonalSpringPointMassIndexes[i, 0];
+            int pt1Index = DiagonalSpringPointMassIndexes[i, 1];
+            Gizmos.DrawLine(PointMassPositions[pt0Index], PointMassPositions[pt1Index]);
         }
     }
 }
