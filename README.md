@@ -9,7 +9,7 @@ This project has been tested with Unity 2018.2.15f1 Personal under Windows 8.1 6
 First open Scenes/OneSlimePrototype, and press play. To view the point mass locations and springs, click the Gizmos button above the Game window to make sure it is highlighted. Be aware that displaying gizmos in scenes with many soft bodies may have a noticeable effect on framerate.
 
 ## Code Sample
-I have written this code as a personal project. My code can be found in the Scripts directory.
+I have written this code as a personal project. My code can be found in the Assets/Scripts/ directory, as *.cs files (ignore *.meta files).
 
 ## My Next Steps
 * Clean up the code
