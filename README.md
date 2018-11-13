@@ -2,7 +2,7 @@
 
 This is a quick exploration of soft body simulation. I'm looking into simple methods for deforming meshes in response to their collision with other objects, as a way to create procedural animation for characters made of jelly (slimes!).
 
-<b>First open Scenes/ManySlimesPrototype, and press play. Click the Gizmos button to highlight it, and view the point mass locations and springs.</b>
+First open Scenes/ManySlimesPrototype, and press play. Click the Gizmos button to highlight it, and view the point mass locations and springs.
 
 My next steps are:
 * Clean up the code
