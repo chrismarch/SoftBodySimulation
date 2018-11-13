@@ -9,6 +9,7 @@ using UnityEngine;
 
 // Simulates soft body physics using point masses connected by springs, and pressure on the polygons
 // on the hull formed by the springs to simulate a contained fluid.
+//
 // This is a prototype, constructed with one MonoBehavior, and is intended to be refactored to
 // use more performant and modular coding practices, such as the ECS and Job System.
 public class SoftBodyPrototype : MonoBehaviour
@@ -34,7 +35,7 @@ public class SoftBodyPrototype : MonoBehaviour
     private float LandedTime;
     #endregion
 
-    // cache components for use during updates
+    // components to cache for use during updates
     // TODO write an ECS/Job System version and see how the perf. is for naive custom collision testing
     private BoxCollider TriggerCollider;
 
@@ -43,7 +44,7 @@ public class SoftBodyPrototype : MonoBehaviour
     private Vector3[] Velocities;
     private Vector3[] Positions;
     private int[,] FacePointIndexes;
-    private int[,] InternalSpringPointIndexes;
+    private int[,] DiagonalSpringPointIndexes;
     #endregion
 
     private void Awake()
@@ -66,12 +67,14 @@ public class SoftBodyPrototype : MonoBehaviour
         Positions[6] = transform.TransformPoint(new Vector3(-HullHalfWidth, -HullHalfWidth, -HullHalfWidth));
         Positions[7] = transform.TransformPoint(new Vector3(-HullHalfWidth, -HullHalfWidth, HullHalfWidth));
 
+        // 6 squares form the faces of the point mass hull
         FacePointIndexes =
                 new int[6, 4]
                     { {3, 2, 1, 0}, {0, 4, 5, 1}, {1, 5, 6, 2}, {2, 6, 7, 3},
                     {3, 7, 4, 0}, {4, 5, 6, 7} };
 
-        InternalSpringPointIndexes =
+        // springs not formed by face edges
+        DiagonalSpringPointIndexes =
             new int[16, 2]
                 {
                     // crossing inside hull
@@ -91,6 +94,7 @@ public class SoftBodyPrototype : MonoBehaviour
     {
         // the TriggerCollider just touched another collider
 
+        // track landing on a surface, for the jump behavior
         if (other.transform.position.y < transform.position.y)
         {
             LandedTime = Time.time;
@@ -142,12 +146,12 @@ public class SoftBodyPrototype : MonoBehaviour
         // accumulate forces for this update, start with gravity
         for (int i = 0; i < Accelerations.Length; ++i)
         {
-            // mass == 1
+            // simplify force to acceleration, as mass == 1
             Accelerations[i] = Physics.gravity;
         }
             
-        // now accumulate spring forces
-        // first the springs on the point mass hull
+        // now accumulate spring forces:
+        // first the springs on the face edges of the hull
         int numPtsPerFace = FacePointIndexes.GetLength(1);
         for (int i = 0; i < FacePointIndexes.GetLength(0); ++i)
         {
@@ -166,10 +170,10 @@ public class SoftBodyPrototype : MonoBehaviour
 
         // now accumulate the springs inside the hull
         // TODO simplify this code by having all the spring point indexes in the same array
-        for (int i = 0; i < InternalSpringPointIndexes.GetLength(0); ++i)
+        for (int i = 0; i < DiagonalSpringPointIndexes.GetLength(0); ++i)
         {
-            int pt0Index = InternalSpringPointIndexes[i, 0];
-            int pt1Index = InternalSpringPointIndexes[i, 1];
+            int pt0Index = DiagonalSpringPointIndexes[i, 0];
+            int pt1Index = DiagonalSpringPointIndexes[i, 1];
             // TODO clean up the rest length code by precalculating an array
             Vector3 springForce =
                 CalcSpringForce(pt0Index, pt1Index, i < 4 ? InternalSpringRestLength : 1.4142f,
@@ -227,7 +231,7 @@ public class SoftBodyPrototype : MonoBehaviour
             }
         }
 
-        // Jump every few seconds, I'm a perky slime!
+        // Jump every few seconds, to keep the simulation lively
         Vector3 jumpVelocity = Vector3.zero;
         if (LandedTime > 0.0f && Time.fixedTime - LandedTime >= JumpWait)
         {
@@ -235,7 +239,7 @@ public class SoftBodyPrototype : MonoBehaviour
             LandedTime = 0.0f;
         }
 
-        // solve for velocities and positions of point masses, and recalc bounds
+        // solve for velocities and positions of point masses, and recalculate the bounding box
         Bounds ptBounds = new Bounds();
         for (int i = 0; i < Positions.Length; ++i)
         {
@@ -334,10 +338,10 @@ public class SoftBodyPrototype : MonoBehaviour
 
         // draw the springs that cross inside the hull and hull faces
         Gizmos.color = Color.yellow;
-        for (int i = 0; i < InternalSpringPointIndexes.GetLength(0); ++i)
+        for (int i = 0; i < DiagonalSpringPointIndexes.GetLength(0); ++i)
         {
-            int pt0Index = InternalSpringPointIndexes[i, 0];
-            int pt1Index = InternalSpringPointIndexes[i, 1];
+            int pt0Index = DiagonalSpringPointIndexes[i, 0];
+            int pt1Index = DiagonalSpringPointIndexes[i, 1];
             Gizmos.DrawLine(Positions[pt0Index], Positions[pt1Index]);
         }
     }

@@ -26,6 +26,7 @@ I have written this code as a personal project. My code can be found in the Asse
 * Alter the pressure simulation to attempt to maintain constant volume, similar to a water balloon (since water doesn't noticeably compress under typical forces).
 * Apply a nonuniform scale on a mesh associated with the soft body simulation
 * Give the soft body a periodic jump behavior, to keep things lively
+* Create a procedural animation for the build up to the jump by negating the instantaneous jump velocity (impulse) to drive the soft body into the ground, which causes it to compress and then rebound into the air
 * Write the code
 
 ## Author
