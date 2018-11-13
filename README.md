@@ -3,7 +3,7 @@
 ## Summary
 This is a quick exploration of soft body simulation. I'm looking into simple methods for deforming meshes in response to their collision with other objects, as a way to create procedural animation for characters made of jelly (slimes!).
 
-This project has been tested with Unity 2018.2.15f1 Personal under Windows 8.1 64-bit;
+This project has been tested with Unity 2018.2.15f1 Personal under Windows 8.1 64-bit.
 
 ## Usage
 First open Scenes/OneSlimePrototype, and press play. To view the point mass locations and springs, click the Gizmos button above the Game window to make sure it is highlighted. Be aware that displaying gizmos in scenes with many soft bodies may have a noticeable effect on framerate.
