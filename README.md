@@ -1,11 +1,12 @@
 # Soft Body Simulation
 
-## Summary
+![gif](https://i.imgur.com/XpWosD6.gif)
+
 This is a quick exploration of soft body simulation. I'm looking into simple methods for deforming meshes in response to their collision with other objects, specifically, character meshes made of jelly (slimes!). All animations in this project are procedural, and result from the soft body simulation.
 
 This project has been tested with Unity 2018.2.15f1 Personal under Windows 8.1 64-bit.
 
-## Usage
+## Play in Unity Editor
 First open Scenes/OneSlimePrototype, and press play. To view the point mass locations and springs, click the Gizmos button above the Game window to make sure it is highlighted. Be aware that displaying gizmos in scenes with many soft bodies may have a noticeable effect on framerate.
 
 ## Code Sample
