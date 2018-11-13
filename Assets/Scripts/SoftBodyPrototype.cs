@@ -43,6 +43,8 @@ public class SoftBodyPrototype : MonoBehaviour
     private int[,] DiagonalSpringPointMassIndexes;
     private float[] SpringRestLengths;
     private float HullRestVolume;
+    private Vector3 TransformStartPosition;
+    private Vector3 TransformStartScale;
     #endregion
 
     // components to cache for use during updates
@@ -58,20 +60,8 @@ public class SoftBodyPrototype : MonoBehaviour
         PointMassAccelerations = new Vector3[8];
         PointMassVelocities = new Vector3[8];
         PointMassPositions = new Vector3[8];
-
-        float halfX = transform.localScale.x * .5f;
-        float halfY = transform.localScale.y * .5f;
-        float halfZ = transform.localScale.z * .5f;
-        PointMassPositions[0] = transform.TransformPoint(new Vector3(halfX, halfY, halfZ));
-        PointMassPositions[1] = transform.TransformPoint(new Vector3(halfX, halfY, -halfZ));
-        PointMassPositions[2] = transform.TransformPoint(new Vector3(-halfX, halfY, -halfZ));
-        PointMassPositions[3] = transform.TransformPoint(new Vector3(-halfX, halfY, halfZ));
-
-        PointMassPositions[4] = transform.TransformPoint(new Vector3(halfX, -halfY, halfZ));
-        PointMassPositions[5] = transform.TransformPoint(new Vector3(halfX, -halfY, -halfZ));
-        PointMassPositions[6] = transform.TransformPoint(new Vector3(-halfX, -halfY, -halfZ));
-        PointMassPositions[7] = transform.TransformPoint(new Vector3(-halfX, -halfY, halfZ));
-
+        InitializePointMassPositionsToBoundingBox();
+        
         // Initialize the arrays that hold point mass indexes
 
         // The first index array has sets of 4 indexes for each of the 6 squares
@@ -130,6 +120,21 @@ public class SoftBodyPrototype : MonoBehaviour
         }
 
         HullRestVolume = transform.localScale.x * transform.localScale.y * transform.localScale.z;
+        TransformStartPosition = transform.position;
+        TransformStartScale = transform.localScale;
+    }
+
+    private void InitializePointMassPositionsToBoundingBox()
+    {
+        PointMassPositions[0] = transform.TransformPoint(new Vector3(.5f, .5f, .5f));
+        PointMassPositions[1] = transform.TransformPoint(new Vector3(.5f, .5f, -.5f));
+        PointMassPositions[2] = transform.TransformPoint(new Vector3(-.5f, .5f, -.5f));
+        PointMassPositions[3] = transform.TransformPoint(new Vector3(-.5f, .5f, .5f));
+
+        PointMassPositions[4] = transform.TransformPoint(new Vector3(.5f, -.5f, .5f));
+        PointMassPositions[5] = transform.TransformPoint(new Vector3(.5f, -.5f, -.5f));
+        PointMassPositions[6] = transform.TransformPoint(new Vector3(-.5f, -.5f, -.5f));
+        PointMassPositions[7] = transform.TransformPoint(new Vector3(-.5f, -.5f, .5f));
     }
 
     private void OnTriggerEnter(Collider other)
@@ -307,12 +312,26 @@ public class SoftBodyPrototype : MonoBehaviour
         // The position and scale are set to fit the TriggerCollider (BoxCollider) to be
         // a conservative bounds for the point masses. Also, the child mesh will inherit this 
         // transform, and go squish, etc.
-        transform.position = ptBounds.center;
-        transform.localScale = ptBounds.size;
+        if (float.IsNaN(ptBounds.center.x) || float.IsNaN(ptBounds.center.y) || float.IsNaN(ptBounds.center.z) ||
+            float.IsNaN(ptBounds.size.x) || float.IsNaN(ptBounds.size.y) || float.IsNaN(ptBounds.size.z))
+        {
+            Debug.LogWarning("Simulation destabilized, NaN detected");
+            /* TODO debug this case
+            transform.position = TransformStartPosition;
+            transform.localScale = TransformStartScale;
+            InitializePointMassPositionsToBoundingBox();
+            */
+            gameObject.SetActive(false);
+        }
+        else
+        {
+            transform.position = ptBounds.center;
+            transform.localScale = ptBounds.size;
+        }
     }
 
     // Returns the cross product: (a - b) X (c - b)
-    Vector3 CalcCross(Vector3 a, Vector3 b, Vector3 c)
+    static Vector3 CalcCross(Vector3 a, Vector3 b, Vector3 c)
     {
         Vector3 bToA = a - b;
         Vector3 btoC = c - b;

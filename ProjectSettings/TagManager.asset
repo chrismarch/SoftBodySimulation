@@ -14,8 +14,8 @@ TagManager:
   - 
   - 
   - PostProcessing
-  - 
-  - 
+  - Static
+  - Collide With Static Onlly
   - 
   - 
   - 
