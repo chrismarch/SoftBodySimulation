@@ -3,10 +3,11 @@
 ![gif](https://i.imgur.com/rUUmGSK.gif)
 ![gif](https://i.imgur.com/mUOUfAU.gif)
 
-This is a quick exploration of soft body simulation. I'm interested in simple, procedural methods for deforming meshes in response to their collision with other objects, specifically, character meshes made of jelly (slimes!). All animations in this project are procedural, and result from the soft body simulation.
+This is a quick exploration of soft body simulation. I'm interested in simple, procedural methods for deforming meshes in response to their collision with other objects, specifically, character meshes made of jelly (slimes!). No animation assets are used in this project, the movement and deformation of the characters is all from the soft body simulation.
 
 ## Play in Unity Editor
 Download and open this project with Unity Editor 2018.2. Then open the simplest scene, under Scenes/OneSlimePrototype, and press play. To view the point mass locations and springs, click the Gizmos button above the Game window to make sure it is highlighted. Be aware that displaying gizmos in scenes with many soft bodies may have a noticeable effect on framerate.
+I've tested this project with Unity Editor 2018.2.15f1 on Windows 8.1.
 
 ## Code Sample
 I have written this code as a personal project. My code can be found in the Assets/Scripts/ directory, as *.cs files (ignore *.meta files).
@@ -17,6 +18,7 @@ I have written this code as a personal project. My code can be found in the Asse
 * Better enforce the fixed volume of the softbody during compression, modelling a fluid like water, which typically stays close to constant volume
 
 ## My Previous Steps
+* Debug the cause of NaN in the positions (this was due to too low a damping value, which led to very high velocities, and then point masses that were so far apart that their distance was represented as float.PositiveInfinity)
 * Simulate lots of soft bodies, with some variety of meshes, in a new test scene. Evaluate frame rate, and check that dimensions of soft body can be configured via the transform's scale
 * See how many springs I can remove until the simulation destabilizes
 * Experiment with the public coefficient properties to find values that lead to numerically stable simulation, while allowing for a pleasing amount of deformation
