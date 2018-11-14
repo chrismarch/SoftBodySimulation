@@ -1,6 +1,7 @@
 # Soft Body Simulation
 
 ![gif](https://i.imgur.com/uLMRGMy.gif)
+![gif](https://i.imgur.com/zSfYzOz.gif)
 
 This is a quick exploration of soft body simulation. I'm looking into simple methods for deforming meshes in response to their collision with other objects, specifically, character meshes made of jelly (slimes!). All animations in this project are procedural, and result from the soft body simulation.
 
