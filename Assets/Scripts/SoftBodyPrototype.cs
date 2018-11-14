@@ -7,8 +7,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Simulates soft body physics using point masses connected by springs, and pressure on the polygons
-// on the hull formed by the springs to simulate a contained fluid.
+// Simulates soft body physics using point masses connected by springs, and pressure on the faces
+// of the hull formed by the point masses, to simulate a contained fluid.
 //
 // This is a prototype, constructed with one MonoBehavior, and is intended to be refactored to
 // use more performant and modular coding practices, such as the ECS and Job System.
@@ -109,7 +109,7 @@ public class SoftBodyPrototype : MonoBehaviour
             }
         }
 
-        // now accumulate the springs inside the hull
+        // now calculate the rest lengths of the springs that aren't face edges on the hull
         for (int i = 0; i < numDiagonalSprings; ++i)
         {
             int pt0Index = DiagonalSpringPointMassIndexes[i, 0];
@@ -178,6 +178,8 @@ public class SoftBodyPrototype : MonoBehaviour
                     Vector3 velocityAlongNormal = speedAlongNormalSigned * depenetrationDir;
                     Vector3 slideVelocity = PointMassVelocities[i] - velocityAlongNormal;
                     velocityAlongNormal *= speedAlongNormalSign; // reflect if opposing
+                    
+                    // reduce velocityAlongNormal by bounce coefficient if reflecting
                     PointMassVelocities[i] = 
                         (speedAlongNormalSign >= 0.0f ? 1.0f : BounceCoefficient) * 
                         velocityAlongNormal + slideVelocity * SlideCoefficient;                        
