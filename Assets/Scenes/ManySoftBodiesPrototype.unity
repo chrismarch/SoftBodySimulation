@@ -639,7 +639,7 @@ GameObject:
   m_Component:
   - component: {fileID: 275199898}
   m_Layer: 10
-  m_Name: 9 Various Shapes
+  m_Name: Various Shapes
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
