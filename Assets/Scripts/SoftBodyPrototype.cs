@@ -32,10 +32,13 @@ public class SoftBodyPrototype : MonoBehaviour
     private float LandedTime;
     #endregion
 
-    #region point mass private state
+    #region point mass and hull face private state
     private Vector3[] PointMassAccelerations;
     private Vector3[] PointMassVelocities;
     private Vector3[] PointMassPositions;
+
+    private Vector3[] FaceNormals;
+    private float[] FaceAreas;
     #endregion
 
     #region private state, read only after Awake
@@ -118,6 +121,9 @@ public class SoftBodyPrototype : MonoBehaviour
                 (PointMassPositions[pt0Index] - PointMassPositions[pt1Index]).magnitude;
             ++springIndex;
         }
+
+        FaceNormals = new Vector3[numFaces];
+        FaceAreas = new float[numFaces];
 
         HullRestVolume = transform.localScale.x * transform.localScale.y * transform.localScale.z;
         TransformStartPosition = transform.position;
@@ -247,19 +253,8 @@ public class SoftBodyPrototype : MonoBehaviour
         //Debug.LogFormat("volume {0}, ratio {1}", volume, volumeRatio);
         Debug.Assert(numPtsPerFace == 4); // assume rectangles
 
-        // TODO cache normals and area instead of recalculating
-        for (int i = 0; i < FacePointMassIndexes.GetLength(0); ++i)
-        {
-            Vector3 a = PointMassPositions[FacePointMassIndexes[i, 0]];
-            Vector3 b = PointMassPositions[FacePointMassIndexes[i, 1]];
-            Vector3 c = PointMassPositions[FacePointMassIndexes[i, 2]];
-
-            Vector3 faceNormal = CalcCross(a, b, c);
-            float faceArea = faceNormal.magnitude; // magnitude of cross is area of parallelogram
-            surfaceArea += faceArea;
-        }
-
-        for (int i = 0; i < FacePointMassIndexes.GetLength(0); ++i)
+        // cache normals and area while calculating total surface area
+        for (int i = 0; i < numFaces; ++i)
         {
             Vector3 a = PointMassPositions[FacePointMassIndexes[i, 0]];
             Vector3 b = PointMassPositions[FacePointMassIndexes[i, 1]];
@@ -272,6 +267,16 @@ public class SoftBodyPrototype : MonoBehaviour
                 // normalize the cross product
                 faceNormal /= faceArea;
             }
+            FaceNormals[i] = faceNormal;
+            FaceAreas[i] = faceArea;
+
+            surfaceArea += faceArea;
+        }
+
+        for (int i = 0; i < numFaces; ++i)
+        {
+            Vector3 faceNormal = FaceNormals[i];
+            float faceArea = FaceAreas[i];
 
             // approximate force distribution through fluid by using more force on the 
             // faces of the hull that have a smaller area (assuming the rest area for each face
