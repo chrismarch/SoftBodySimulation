@@ -178,11 +178,12 @@ public class SoftBodyPrototype : MonoBehaviour
                     Vector3 velocityAlongNormal = speedAlongNormalSigned * depenetrationDir;
                     Vector3 slideVelocity = PointMassVelocities[i] - velocityAlongNormal;
                     velocityAlongNormal *= speedAlongNormalSign; // reflect if opposing
-                    
+
                     // reduce velocityAlongNormal by bounce coefficient if reflecting
+                    float bounceCoefficient = (speedAlongNormalSign >= 0.0f ? 1.0f : BounceCoefficient);
                     PointMassVelocities[i] = 
-                        (speedAlongNormalSign >= 0.0f ? 1.0f : BounceCoefficient) * 
-                        velocityAlongNormal + slideVelocity * SlideCoefficient;                        
+                        bounceCoefficient * velocityAlongNormal + 
+                        slideVelocity * SlideCoefficient;                        
                 }
             }
         }
