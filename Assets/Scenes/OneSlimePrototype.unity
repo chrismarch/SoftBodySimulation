@@ -152,46 +152,6 @@ Prefab:
       propertyPath: m_RootOrder
       value: 3
       objectReference: {fileID: 0}
-    - target: {fileID: 114095847743864468, guid: c9214370803ad884eb34316252032081,
-        type: 2}
-      propertyPath: JumpSpeed
-      value: -9
-      objectReference: {fileID: 0}
-    - target: {fileID: 114095847743864468, guid: c9214370803ad884eb34316252032081,
-        type: 2}
-      propertyPath: JumpWaitMin
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 114095847743864468, guid: c9214370803ad884eb34316252032081,
-        type: 2}
-      propertyPath: JumpWaitMax
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 114095847743864468, guid: c9214370803ad884eb34316252032081,
-        type: 2}
-      propertyPath: BounceCoefficient
-      value: 0.07
-      objectReference: {fileID: 0}
-    - target: {fileID: 1914218738110066, guid: c9214370803ad884eb34316252032081, type: 2}
-      propertyPath: m_Layer
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 1883482698772732, guid: c9214370803ad884eb34316252032081, type: 2}
-      propertyPath: m_Layer
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 1431020131722618, guid: c9214370803ad884eb34316252032081, type: 2}
-      propertyPath: m_Layer
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 1360647087386438, guid: c9214370803ad884eb34316252032081, type: 2}
-      propertyPath: m_Layer
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 1604294776944872, guid: c9214370803ad884eb34316252032081, type: 2}
-      propertyPath: m_Layer
-      value: 10
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c9214370803ad884eb34316252032081, type: 2}
   m_IsPrefabAsset: 0

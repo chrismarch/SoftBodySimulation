@@ -15,17 +15,38 @@ using UnityEngine;
 public class SoftBodyPrototype : MonoBehaviour
 {
     #region soft body simulation inspector coefficients
-    public float SpringStiffness = 50.0f;
-    public float SpringDamping = 1.0f;
+    [Range(0.0f, 100.0f)]
+    [Tooltip("Strength of forces to maintain constant volume")]
     public float PressureMultiplier = 50.0f;
+
+    [Range(20.0f, 100.0f)]
+    [Tooltip("Resistance against deformation")]
+    public float SpringStiffness = 50.0f;
+
+    [Range(1.5f, 10.0f)]
+    [Tooltip("Resistance against jiggle")]
+    public float SpringDamping = 1.0f;
+
+    [Range(0.0f, 1.0f)]
+    [Tooltip("Percentage of impact velocity reflected")]
     public float BounceCoefficient = .05f;
+
+    [Range(0.0f, 1.0f)]
+    [Tooltip("Percentage of impact velocity maintained to slide along surface")]
     public float SlideCoefficient = .99f;
     #endregion
 
     #region jumping: inspector properties and private state
-    // negative JumpSpeed creates a procedural "jump build up" animation and then the body rebounds
-    public float JumpSpeed = -8.5f; 
+    [Range(-20.0f, 20.0f)]
+    [Tooltip("Negative values create a procedural build up animation before the body rebounds")]
+    public float JumpSpeed = -8.5f;
+
+    [Range(0.0f, 10.0f)]
+    [Tooltip("Min. seconds between land and jump")]
     public float JumpWaitMin = 3.0f;
+
+    [Range(0.0f, 10.0f)]
+    [Tooltip("Max. seconds between land and jump")]
     public float JumpWaitMax = 4.0f;
 
     private float JumpWait;
@@ -253,9 +274,22 @@ public class SoftBodyPrototype : MonoBehaviour
                     CalcSpringForce(pt0Index, pt1Index, SpringRestLengths[springIndex], 
                                     SpringStiffness, SpringDamping);
 
-                // mass == 1, so a = F/m = F
-                PointMassAccelerations[pt0Index] += springForce;
-                PointMassAccelerations[pt1Index] -= springForce;
+                if (HasNaN(springForce))
+                {
+                    // This bug was due to division by float.PositiveInfinity in the faceNormal
+                    // calculation, after the positions became too far apart due to too low
+                    // damping value and too high velocities. It seems to be fixed by limiting
+                    // the minimum damping value.
+                    //Debug.LogWarningFormat("{0}>{1} calculated NaN for face edge spring force",
+                    //    transform.parent == null ? "(no parent)" : transform.parent.gameObject.name,
+                    //    gameObject.name);
+                }
+                else
+                {
+                    // mass == 1, so a = F/m = F
+                    PointMassAccelerations[pt0Index] += springForce;
+                    PointMassAccelerations[pt1Index] -= springForce;
+                }
                 ++springIndex;
             }
         }
@@ -269,8 +303,21 @@ public class SoftBodyPrototype : MonoBehaviour
             Vector3 springForce =
                 CalcSpringForce(pt0Index, pt1Index, SpringRestLengths[springIndex],
                                 SpringStiffness, SpringDamping);
-            PointMassAccelerations[pt0Index] += springForce;
-            PointMassAccelerations[pt1Index] -= springForce;
+            if (HasNaN(springForce))
+            {
+                // This bug was due to division by float.PositiveInfinity in the faceNormal
+                // calculation, after the positions became too far apart due to too low
+                // damping value and too high velocities. It seems to be fixed by limiting
+                // the minimum damping value.
+                //Debug.LogWarningFormat("{0}>{1} calculated NaN for diagonal spring force",
+                //    transform.parent == null ? "(no parent)" : transform.parent.gameObject.name,
+                //    gameObject.name);
+            }
+            else
+            { 
+                PointMassAccelerations[pt0Index] += springForce;
+                PointMassAccelerations[pt1Index] -= springForce;
+            }
             ++springIndex;
         }
 
@@ -294,11 +341,26 @@ public class SoftBodyPrototype : MonoBehaviour
 
             Vector3 faceNormal = CalcCross(a, b, c);
             float faceArea = faceNormal.magnitude; // magnitude of cross is area of parallelogram
-            if (faceArea > 0.0f)
+            if (float.IsInfinity(faceArea))
+            {
+                // This bug was due to division by float.PositiveInfinity in the faceNormal
+                // calculation, after the positions became too far apart due to too low
+                // damping value and too high velocities. It seems to be fixed by limiting
+                // the minimum damping value.
+                //Debug.LogWarningFormat("{0}>{1} calculated infinity for face area, positions are too far apart",
+                //                        transform.parent == null ? "(no parent)" : transform.parent.gameObject.name,
+                //                        gameObject.name);                 
+
+                // provide some finite values by using the starting top face
+                faceNormal = new Vector3(0.0f, 1.0f, 0.0f);
+                faceArea = TransformStartScale.x * TransformStartScale.z;
+            }            
+            else if (faceArea > 0.0f)
             {
                 // normalize the cross product
                 faceNormal /= faceArea;
             }
+
             FaceNormals[i] = faceNormal;
             FaceAreas[i] = faceArea;
 
@@ -320,8 +382,23 @@ public class SoftBodyPrototype : MonoBehaviour
             pressureForceMult *= pressureForceMult;            
             for (int j = 0; j < numPtsPerFace; ++j)
             {
-                PointMassAccelerations[FacePointMassIndexes[i, j]] +=
+                Vector3 pressureForce = 
                     faceNormal * (PressureMultiplier * pressureForceMult * (1.0f - volumeRatio));
+                if (HasNaN(pressureForce))
+                {
+                    // This bug was due to division by float.PositiveInfinity in the faceNormal
+                    // calculation, after the positions became too far apart due to too low
+                    // damping value and too high velocities. It seems to be fixed by limiting
+                    // the minimum damping value.
+                    //Debug.LogWarningFormat("{0}>{1} calculated NaN for pressure force",
+                    //    transform.parent == null ? "(no parent)" : transform.parent.gameObject.name,
+                    //    gameObject.name);                     
+                }
+                else
+                {
+                    PointMassAccelerations[FacePointMassIndexes[i, j]] += pressureForce;
+                }
+                    
             }
         }
 
@@ -341,6 +418,7 @@ public class SoftBodyPrototype : MonoBehaviour
             PointMassPositions[i] += PointMassVelocities[i] * Time.fixedDeltaTime;
             if (i == 0)
             {
+                // start the bounds around the first point mass position (instead of [0,0,0])
                 ptBounds = new Bounds(PointMassPositions[i], new Vector3(0.0f, 0.0f, 0.0f));
             }
             else
@@ -352,8 +430,7 @@ public class SoftBodyPrototype : MonoBehaviour
         // The position and scale are set to fit the TriggerCollider (BoxCollider) to be
         // a conservative bounds for the point masses. Also, the child mesh will inherit this 
         // transform, and go squish, etc.
-        if (float.IsNaN(ptBounds.center.x) || float.IsNaN(ptBounds.center.y) || float.IsNaN(ptBounds.center.z) ||
-            float.IsNaN(ptBounds.size.x) || float.IsNaN(ptBounds.size.y) || float.IsNaN(ptBounds.size.z))
+        if (HasNaN(ptBounds.center) || HasNaN(ptBounds.size))
         {
             Debug.LogWarningFormat("{0}>{1} simulation destabilized, NaN detected, and will be respawned",
                                     transform.parent == null ? "(no parent)" : transform.parent.gameObject.name,
@@ -374,6 +451,12 @@ public class SoftBodyPrototype : MonoBehaviour
         Vector3 bToA = a - b;
         Vector3 btoC = c - b;
         return Vector3.Cross(bToA, btoC);
+    }
+
+    // Got NaN? Then there's an error in the math.
+    static bool HasNaN(Vector3 v)
+    {
+        return float.IsNaN(v.x) || float.IsNaN(v.y) || float.IsNaN(v.z);
     }
 
     // Calculates the force from the spring to apply to point mass 0, 

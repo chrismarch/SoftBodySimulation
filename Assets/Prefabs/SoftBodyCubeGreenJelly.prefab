@@ -153,9 +153,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cee4a57c08e47fe43b618632bf84ea42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SpringStiffness: 50
-  SpringDamping: 1
   PressureMultiplier: 50
+  SpringStiffness: 50
+  SpringDamping: 1.5
   BounceCoefficient: 0.07
   SlideCoefficient: 0.999
   JumpSpeed: -8.5

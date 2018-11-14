@@ -21,7 +21,7 @@ GameObject:
   - component: {fileID: 4368758051069104}
   - component: {fileID: 33464206414836610}
   - component: {fileID: 23152079079424118}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: surface_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -38,7 +38,7 @@ GameObject:
   - component: {fileID: 4710756387323030}
   - component: {fileID: 33182626578679350}
   - component: {fileID: 23033668669283608}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: surface_000
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -55,7 +55,7 @@ GameObject:
   - component: {fileID: 4959195450935544}
   - component: {fileID: 33605155354195268}
   - component: {fileID: 23157269265060046}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: surface_02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -70,7 +70,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4697900155676408}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Slime
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -88,7 +88,7 @@ GameObject:
   - component: {fileID: 65082993751327908}
   - component: {fileID: 114095847743864468}
   - component: {fileID: 54599136275754382}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: SoftBodySlime
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -115,7 +115,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1914218738110066}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4.88, y: 2.8, z: 0.5}
+  m_LocalPosition: {x: -4.88, y: 2.717, z: 0.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4697900155676408}
@@ -328,15 +328,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cee4a57c08e47fe43b618632bf84ea42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SpringStiffness: 50
-  SpringDamping: 1
-  SpringRestLength: 1
-  InternalSpringRestLength: 1.7320508
   PressureMultiplier: 50
-  HullRestVolume: 1
-  HullHalfWidth: 0.5
+  SpringStiffness: 50
+  SpringDamping: 1.5
   BounceCoefficient: 0.07
   SlideCoefficient: 0.999
-  JumpSpeed: -8.5
+  JumpSpeed: -9
   JumpWaitMin: 3
   JumpWaitMax: 4
