@@ -48,6 +48,9 @@ public class SoftBodyPrototype : MonoBehaviour
     private float HullRestVolume;
     private Vector3 TransformStartPosition;
     private Vector3 TransformStartScale;
+
+    private const int INVALID_LAYER = -1;
+    private static int PlayAreaTriggerLayer = INVALID_LAYER;
     #endregion
 
     // components to cache for use during updates
@@ -128,6 +131,11 @@ public class SoftBodyPrototype : MonoBehaviour
         HullRestVolume = transform.localScale.x * transform.localScale.y * transform.localScale.z;
         TransformStartPosition = transform.position;
         TransformStartScale = transform.localScale;
+        if (PlayAreaTriggerLayer == INVALID_LAYER)
+        {
+            // static, just initialize once
+            PlayAreaTriggerLayer = LayerMask.NameToLayer("Play Area"); 
+        }
     }
 
     private void InitializePointMassPositionsToBoundingBox()
@@ -143,12 +151,24 @@ public class SoftBodyPrototype : MonoBehaviour
         PointMassPositions[7] = transform.TransformPoint(new Vector3(-.5f, -.5f, .5f));
     }
 
+    private void Respawn()
+    {
+        transform.position = TransformStartPosition;
+        transform.localScale = TransformStartScale;
+        InitializePointMassPositionsToBoundingBox();
+        for (int i = 0; i < PointMassVelocities.Length; ++i)
+        {
+            PointMassVelocities[i] = new Vector3(0.0f, 0.0f, 0.0f); // (I tend to avoid the method calls from properties such as Vector3.zero)
+        }
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         // the TriggerCollider just touched another collider
 
         // track landing on a surface, for the jump behavior
-        if (other.transform.position.y < transform.position.y)
+        if (other.gameObject.layer != PlayAreaTriggerLayer && 
+            other.transform.position.y < transform.position.y)
         {
             LandedTime = Time.time;
             JumpWait = Random.Range(JumpWaitMin, JumpWaitMax);
@@ -161,7 +181,8 @@ public class SoftBodyPrototype : MonoBehaviour
         // and resolve their velocities for the collision
         Vector3 depenetrationDir;
         float depenetrationDist;
-        if (Physics.ComputePenetration(TriggerCollider, transform.position, transform.rotation,
+        if (other.gameObject.layer != PlayAreaTriggerLayer &&
+            Physics.ComputePenetration(TriggerCollider, transform.position, transform.rotation,
                                        other, other.transform.position, other.transform.rotation,
                                        out depenetrationDir, out depenetrationDist))
         {
@@ -192,6 +213,17 @@ public class SoftBodyPrototype : MonoBehaviour
                         slideVelocity * SlideCoefficient;                        
                 }
             }
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.gameObject.layer == PlayAreaTriggerLayer)
+        {
+            Debug.LogWarningFormat("{0}>{1} left the play area, and will be respawned", 
+                                    transform.parent == null ? "(no parent)" : transform.parent.gameObject.name,                    
+                                    gameObject.name);
+            Respawn();
         }
     }
 
@@ -294,7 +326,7 @@ public class SoftBodyPrototype : MonoBehaviour
         }
 
         // Jump every few seconds, to keep the simulation lively
-        Vector3 jumpVelocity = Vector3.zero;
+        Vector3 jumpVelocity = new Vector3(0.0f, 0.0f, 0.0f);
         if (LandedTime > 0.0f && Time.fixedTime - LandedTime >= JumpWait)
         {
             jumpVelocity = Vector3.up * JumpSpeed;
@@ -309,7 +341,7 @@ public class SoftBodyPrototype : MonoBehaviour
             PointMassPositions[i] += PointMassVelocities[i] * Time.fixedDeltaTime;
             if (i == 0)
             {
-                ptBounds = new Bounds(PointMassPositions[i], Vector3.zero);
+                ptBounds = new Bounds(PointMassPositions[i], new Vector3(0.0f, 0.0f, 0.0f));
             }
             else
             {
@@ -323,13 +355,11 @@ public class SoftBodyPrototype : MonoBehaviour
         if (float.IsNaN(ptBounds.center.x) || float.IsNaN(ptBounds.center.y) || float.IsNaN(ptBounds.center.z) ||
             float.IsNaN(ptBounds.size.x) || float.IsNaN(ptBounds.size.y) || float.IsNaN(ptBounds.size.z))
         {
-            Debug.LogWarningFormat("{0} simulation destabilized, NaN detected", gameObject.name);
-            /* TODO debug this case
-            transform.position = TransformStartPosition;
-            transform.localScale = TransformStartScale;
-            InitializePointMassPositionsToBoundingBox();
-            */
-            gameObject.SetActive(false);
+            Debug.LogWarningFormat("{0}>{1} simulation destabilized, NaN detected, and will be respawned",
+                                    transform.parent == null ? "(no parent)" : transform.parent.gameObject.name,
+                                    gameObject.name);
+
+            Respawn();
         }
         else
         {

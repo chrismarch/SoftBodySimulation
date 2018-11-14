@@ -14,9 +14,9 @@ TagManager:
   - 
   - 
   - PostProcessing
-  - Static
-  - Collide With Static Onlly
-  - 
+  - Static Environment
+  - Actors
+  - Play Area
   - 
   - 
   - 
