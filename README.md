@@ -1,24 +1,23 @@
 # Soft Body Simulation
 
-![gif](https://i.imgur.com/XpWosD6.gif)
+![gif](https://i.imgur.com/rUUmGSK.gif)
+![gif](https://i.imgur.com/mUOUfAU.gif)
 
-This is a quick exploration of soft body simulation. I'm looking into simple methods for deforming meshes in response to their collision with other objects, specifically, character meshes made of jelly (slimes!). All animations in this project are procedural, and result from the soft body simulation.
-
-This project has been tested with Unity 2018.2.15f1 Personal under Windows 8.1 64-bit.
+This is a quick exploration of soft body simulation. I'm interested in simple, procedural methods for deforming meshes in response to their collision with other objects, specifically, character meshes made of jelly (slimes!). All animations in this project are procedural, and result from the soft body simulation.
 
 ## Play in Unity Editor
-First open Scenes/OneSlimePrototype, and press play. To view the point mass locations and springs, click the Gizmos button above the Game window to make sure it is highlighted. Be aware that displaying gizmos in scenes with many soft bodies may have a noticeable effect on framerate.
+Download and open this project with Unity Editor 2018.2. Then open the simplest scene, under Scenes/OneSlimePrototype, and press play. To view the point mass locations and springs, click the Gizmos button above the Game window to make sure it is highlighted. Be aware that displaying gizmos in scenes with many soft bodies may have a noticeable effect on framerate.
 
 ## Code Sample
 I have written this code as a personal project. My code can be found in the Assets/Scripts/ directory, as *.cs files (ignore *.meta files).
 
 ## My Next Steps
-* Simulate lots of soft bodies, with some variety of meshes, in a new test scene. Evaluate frame rate, and check that dimensions of soft body can be configured via the transform's scale
 * Create a high performance ECS/Job system version, perhaps without using Unity's collision system
 * Create a free form deformation shader that uses the point mass locations, or perhaps just applies shears
 * Better enforce the fixed volume of the softbody during compression, modelling a fluid like water, which typically stays close to constant volume
 
 ## My Previous Steps
+* Simulate lots of soft bodies, with some variety of meshes, in a new test scene. Evaluate frame rate, and check that dimensions of soft body can be configured via the transform's scale
 * See how many springs I can remove until the simulation destabilizes
 * Experiment with the public coefficient properties to find values that lead to numerically stable simulation, while allowing for a pleasing amount of deformation
 * Assemble point masses in a bounding box shape, and create a spring lattice, adding springs and experimenting with coefficients until the simulation doesn't collapse over time
