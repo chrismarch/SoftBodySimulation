@@ -323,7 +323,7 @@ public class SoftBodyPrototype : MonoBehaviour
         if (float.IsNaN(ptBounds.center.x) || float.IsNaN(ptBounds.center.y) || float.IsNaN(ptBounds.center.z) ||
             float.IsNaN(ptBounds.size.x) || float.IsNaN(ptBounds.size.y) || float.IsNaN(ptBounds.size.z))
         {
-            Debug.LogWarning("Simulation destabilized, NaN detected");
+            Debug.LogWarningFormat("{0} simulation destabilized, NaN detected", gameObject.name);
             /* TODO debug this case
             transform.position = TransformStartPosition;
             transform.localScale = TransformStartScale;
