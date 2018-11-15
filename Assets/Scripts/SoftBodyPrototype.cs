@@ -25,7 +25,7 @@ public class SoftBodyPrototype : MonoBehaviour
 
     [Range(1.5f, 10.0f)]
     [Tooltip("Resistance against jiggle")]
-    public float SpringDamping = 1.0f;
+    public float SpringDamping = 1.5f;
 
     [Range(0.0f, 1.0f)]
     [Tooltip("Percentage of impact velocity reflected")]
@@ -87,8 +87,40 @@ public class SoftBodyPrototype : MonoBehaviour
         PointMassAccelerations = new Vector3[8];
         PointMassVelocities = new Vector3[8];
         PointMassPositions = new Vector3[8];
+
         InitializePointMassPositionsToBoundingBox();
-        
+        InitializePointMassIndexesForBoundingBox();
+        SaveSpringRestLengths();
+
+        int numFaces = FacePointMassIndexes.GetLength(0);
+        FaceNormals = new Vector3[numFaces];
+        FaceAreas = new float[numFaces];
+
+        HullRestVolume = transform.localScale.x * transform.localScale.y * transform.localScale.z;
+        TransformStartPosition = transform.position;
+        TransformStartScale = transform.localScale;
+        if (PlayAreaTriggerLayer == INVALID_LAYER)
+        {
+            // static, just initialize once
+            PlayAreaTriggerLayer = LayerMask.NameToLayer("Play Area"); 
+        }
+    }
+
+    private void InitializePointMassPositionsToBoundingBox()
+    {
+        PointMassPositions[0] = transform.TransformPoint(new Vector3(.5f, .5f, .5f));
+        PointMassPositions[1] = transform.TransformPoint(new Vector3(.5f, .5f, -.5f));
+        PointMassPositions[2] = transform.TransformPoint(new Vector3(-.5f, .5f, -.5f));
+        PointMassPositions[3] = transform.TransformPoint(new Vector3(-.5f, .5f, .5f));
+
+        PointMassPositions[4] = transform.TransformPoint(new Vector3(.5f, -.5f, .5f));
+        PointMassPositions[5] = transform.TransformPoint(new Vector3(.5f, -.5f, -.5f));
+        PointMassPositions[6] = transform.TransformPoint(new Vector3(-.5f, -.5f, -.5f));
+        PointMassPositions[7] = transform.TransformPoint(new Vector3(-.5f, -.5f, .5f));
+    }
+
+    private void InitializePointMassIndexesForBoundingBox()
+    {
         // Initialize the arrays that hold point mass indexes
 
         // The first index array has sets of 4 indexes for each of the 6 squares
@@ -107,14 +139,17 @@ public class SoftBodyPrototype : MonoBehaviour
                     {0, 6}, {1, 7}, {2, 4}, {3, 5}, 
 
                     // diagonals on hull
-                    {3, 1}, {2, 0}, 
-                    {0, 5}, {4, 1}, 
-                    {1, 6}, {5, 2}, 
-                    {2, 7}, {6, 3}, 
-                    {3, 4}, {7, 0}, 
-                    {4, 6}, {5, 7}, 
+                    {3, 1}, {2, 0},
+                    {0, 5}, {4, 1},
+                    {1, 6}, {5, 2},
+                    {2, 7}, {6, 3},
+                    {3, 4}, {7, 0},
+                    {4, 6}, {5, 7},
                 };
+    }
 
+    private void SaveSpringRestLengths()
+    {
         // calculate spring rest lengths
         int springIndex = 0;
         int numFaceEdgeSprings = FacePointMassIndexes.GetLength(0) * FacePointMassIndexes.GetLength(1);
@@ -145,33 +180,9 @@ public class SoftBodyPrototype : MonoBehaviour
                 (PointMassPositions[pt0Index] - PointMassPositions[pt1Index]).magnitude;
             ++springIndex;
         }
-
-        FaceNormals = new Vector3[numFaces];
-        FaceAreas = new float[numFaces];
-
-        HullRestVolume = transform.localScale.x * transform.localScale.y * transform.localScale.z;
-        TransformStartPosition = transform.position;
-        TransformStartScale = transform.localScale;
-        if (PlayAreaTriggerLayer == INVALID_LAYER)
-        {
-            // static, just initialize once
-            PlayAreaTriggerLayer = LayerMask.NameToLayer("Play Area"); 
-        }
     }
 
-    private void InitializePointMassPositionsToBoundingBox()
-    {
-        PointMassPositions[0] = transform.TransformPoint(new Vector3(.5f, .5f, .5f));
-        PointMassPositions[1] = transform.TransformPoint(new Vector3(.5f, .5f, -.5f));
-        PointMassPositions[2] = transform.TransformPoint(new Vector3(-.5f, .5f, -.5f));
-        PointMassPositions[3] = transform.TransformPoint(new Vector3(-.5f, .5f, .5f));
-
-        PointMassPositions[4] = transform.TransformPoint(new Vector3(.5f, -.5f, .5f));
-        PointMassPositions[5] = transform.TransformPoint(new Vector3(.5f, -.5f, -.5f));
-        PointMassPositions[6] = transform.TransformPoint(new Vector3(-.5f, -.5f, -.5f));
-        PointMassPositions[7] = transform.TransformPoint(new Vector3(-.5f, -.5f, .5f));
-    }
-
+    // Places the soft body back where it started, and resets the simulation state
     private void Respawn()
     {
         transform.position = TransformStartPosition;
@@ -259,7 +270,22 @@ public class SoftBodyPrototype : MonoBehaviour
             PointMassAccelerations[i] = Physics.gravity;
         }
 
-        // now accumulate spring forces:
+        AccumulateSpringForces();
+        AccumulatePressureForces();
+
+        // Jump every few seconds, to keep the simulation lively
+        Vector3 jumpVelocity = new Vector3(0.0f, 0.0f, 0.0f);
+        if (LandedTime > 0.0f && Time.fixedTime - LandedTime >= JumpWait)
+        {
+            jumpVelocity = Vector3.up * JumpSpeed;
+            LandedTime = 0.0f;
+        }
+        SolveForVelocitiesAndPositions(Time.fixedDeltaTime, jumpVelocity);
+    }
+
+    // Calculates the force on each spring and adds it to Accelerations 
+    private void AccumulateSpringForces()
+    {
         int springIndex = 0;
         // first the springs on the face edges of the hull
         int numFaces = FacePointMassIndexes.GetLength(0);
@@ -270,8 +296,8 @@ public class SoftBodyPrototype : MonoBehaviour
             {
                 int pt0Index = FacePointMassIndexes[i, j];
                 int pt1Index = FacePointMassIndexes[i, (j + 1) % numPtsPerFace];
-                Vector3 springForce = 
-                    CalcSpringForce(pt0Index, pt1Index, SpringRestLengths[springIndex], 
+                Vector3 springForce =
+                    CalcSpringForce(pt0Index, pt1Index, SpringRestLengths[springIndex],
                                     SpringStiffness, SpringDamping);
 
                 if (HasNaN(springForce))
@@ -314,21 +340,28 @@ public class SoftBodyPrototype : MonoBehaviour
                 //    gameObject.name);
             }
             else
-            { 
+            {
                 PointMassAccelerations[pt0Index] += springForce;
                 PointMassAccelerations[pt1Index] -= springForce;
             }
             ++springIndex;
         }
+    }
 
-        // estimate volume and pressure forces, similar to pseudocode: https://arxiv.org/ftp/physics/papers/0407/0407003.pdf
-        // but replace the Ideal Gas Law approximation with a formula that is easier to tune for
-        // an approximately fixed volume fluid (like water)
-        float volume =
+    // Calculates the force on each set of point masses forming a hull face, and adds it to Accelerations 
+    //
+    // estimate volume and pressure forces, similar to pseudocode: https://arxiv.org/ftp/physics/papers/0407/0407003.pdf
+    // but replace the Ideal Gas Law approximation with a formula that is easier to tune for
+    // an approximately fixed volume fluid (like water)
+    private void AccumulatePressureForces()
+    {
+            float volume =
             transform.localScale.x * transform.localScale.y * transform.localScale.z;
 
         float volumeRatio = volume / HullRestVolume;
         float surfaceArea = 0.0f;
+        int numFaces = FacePointMassIndexes.GetLength(0);
+        int numPtsPerFace = FacePointMassIndexes.GetLength(1);
         //Debug.LogFormat("volume {0}, ratio {1}", volume, volumeRatio);
         Debug.Assert(numPtsPerFace == 4); // assume rectangles
 
@@ -354,7 +387,7 @@ public class SoftBodyPrototype : MonoBehaviour
                 // provide some finite values by using the starting top face
                 faceNormal = new Vector3(0.0f, 1.0f, 0.0f);
                 faceArea = TransformStartScale.x * TransformStartScale.z;
-            }            
+            }
             else if (faceArea > 0.0f)
             {
                 // normalize the cross product
@@ -379,10 +412,10 @@ public class SoftBodyPrototype : MonoBehaviour
             // TODO refine the pressure algorithm so that the volume doesn't compress as much
             //
             float pressureForceMult = 1.0f - faceArea / surfaceArea;
-            pressureForceMult *= pressureForceMult;            
+            pressureForceMult *= pressureForceMult;
             for (int j = 0; j < numPtsPerFace; ++j)
             {
-                Vector3 pressureForce = 
+                Vector3 pressureForce =
                     faceNormal * (PressureMultiplier * pressureForceMult * (1.0f - volumeRatio));
                 if (HasNaN(pressureForce))
                 {
@@ -398,24 +431,18 @@ public class SoftBodyPrototype : MonoBehaviour
                 {
                     PointMassAccelerations[FacePointMassIndexes[i, j]] += pressureForce;
                 }
-                    
             }
         }
+    }
 
-        // Jump every few seconds, to keep the simulation lively
-        Vector3 jumpVelocity = new Vector3(0.0f, 0.0f, 0.0f);
-        if (LandedTime > 0.0f && Time.fixedTime - LandedTime >= JumpWait)
-        {
-            jumpVelocity = Vector3.up * JumpSpeed;
-            LandedTime = 0.0f;
-        }
-
+    private void SolveForVelocitiesAndPositions(float deltaTime, Vector3 jumpVelocity)
+    {
         // solve for velocities and positions of point masses, and recalculate the bounding box
         Bounds ptBounds = new Bounds();
         for (int i = 0; i < PointMassPositions.Length; ++i)
         {
-            PointMassVelocities[i] += PointMassAccelerations[i] * Time.fixedDeltaTime + jumpVelocity;
-            PointMassPositions[i] += PointMassVelocities[i] * Time.fixedDeltaTime;
+            PointMassVelocities[i] += PointMassAccelerations[i] * deltaTime + jumpVelocity;
+            PointMassPositions[i] += PointMassVelocities[i] * deltaTime;
             if (i == 0)
             {
                 // start the bounds around the first point mass position (instead of [0,0,0])
@@ -444,7 +471,6 @@ public class SoftBodyPrototype : MonoBehaviour
             transform.localScale = ptBounds.size;
         }
     }
-
     // Returns the cross product: (a - b) X (c - b)
     static Vector3 CalcCross(Vector3 a, Vector3 b, Vector3 c)
     {
