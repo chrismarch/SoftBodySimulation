@@ -3,7 +3,7 @@
 This is a quick exploration of procedural methods for deforming meshes in response to collisions with other objects, specifically, character meshes made of jelly (slimes!). No animation assets are used in this project, the movement and deformation of the characters are all from the soft body simulation.
 
 ## Code
-I have written this code as a personal project. My code can be found in the Assets/Scripts/ directory, currently as a single file, [SoftBodyPrototype.cs](Assets/Scripts/SoftBodyPrototype.cs). To read the code in a top-down fashion, I recommend these major methods: 1. public fields, used by the Unity Editor inspector 2. Awake 3. OnTrigger* 4. FixedUpdate 5. OnDrawGizmos
+I have written this code as a personal project. My code can be found in the Assets/Scripts/ directory, currently as a single file, [SoftBodyPrototype.cs](Assets/Scripts/SoftBodyPrototype.cs). To read the code in a top-down fashion, I recommend this order: 1. public fields, used by the Unity Editor inspector 2. Awake 3. OnTrigger* 4. FixedUpdate 5. OnDrawGizmos
 
 ## Play in Unity Editor
 Open this project with Unity Editor 2018.2 or later. Then start with the simplest scene, by opening Scenes/OneSlimePrototype, and pressing play. To view the point mass locations and springs, click the Gizmos button above the Game window to make sure it is highlighted. Be aware that displaying gizmos in scenes with many soft bodies may have a noticeable effect on framerate.
