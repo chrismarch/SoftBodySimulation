@@ -18,7 +18,7 @@ I've tested this project with Unity Editor 2018.2.15f1 on Windows 8.1.
 * Better enforce the fixed volume of the softbody during compression, modelling a fluid like water, which typically stays close to constant volume
 
 ## My Previous Steps
-* Debug the cause of NaN in the positions (this was due to too low a damping value, which led to very high velocities, and then point masses that were so far apart that the area of the parallelogram on the face of their hull (calculated as magnitude of cross product) was float.PositiveInfinity)
+* Debug the cause of NaN in the positions (this was due to too low a damping value, which led to very high velocities, and then point masses that were so far apart that the area of the parallelogram on the face of their hull, which I calculated as magnitude of cross product, was float.PositiveInfinity)
 * Simulate lots of soft bodies, with some variety of meshes, in a new test scene. Evaluate frame rate, and check that dimensions of soft body can be configured via the transform's scale
 * See how many springs I can remove until the simulation destabilizes
 * Experiment with the public coefficient properties to find values that lead to numerically stable simulation, while allowing for a pleasing amount of deformation
