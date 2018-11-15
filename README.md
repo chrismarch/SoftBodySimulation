@@ -5,7 +5,7 @@
 
 This is a quick exploration of procedural methods for deforming meshes in response to collisions with other objects, specifically, character meshes made of jelly (slimes!). No animation assets are used in this project, the movement and deformation of the characters are all from the soft body simulation.
 
-## Code Sample
+## Code
 I have written this code as a personal project. My code can be found in the Assets/Scripts/ directory, currently as a single file, [SoftBodyPrototype.cs](Assets/Scripts/SoftBodyPrototype.cs).
 
 ## Play in Unity Editor
