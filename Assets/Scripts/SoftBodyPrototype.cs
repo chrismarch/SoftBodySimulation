@@ -1,7 +1,7 @@
 ﻿// SoftBodyPrototype
 // Author: 
 // Chris March 
-// https://github.com/chrismarch/SoftBodyPrototype
+// https://github.com/chrismarch/SoftBodySimulation
 
 using System.Collections;
 using System.Collections.Generic;
