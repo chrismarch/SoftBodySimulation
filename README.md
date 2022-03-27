@@ -31,7 +31,12 @@ I've tested this project with Unity Editor 2018.2.15f1 on Windows 8.1.
 * Clean up the prototype (MonoBehavior) code a bit
 * Write the code
 
-## Author
+## Code Author
 Chris March
 https://www.linkedin.com/in/cmarch/
+
+## Attribution
+Slime.obj and texture files adapted from https://www.models-resource.com/pc_computer/dragonquestheroes/model/17210/
+
+"These resources are collected for personal projects and non-commercial work." https://www.models-resource.com/about/
 
