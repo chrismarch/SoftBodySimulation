@@ -37,5 +37,5 @@ https://www.linkedin.com/in/cmarch/
 
 ## Attribution
 * Slime prefab:
-** Slime.obj and texture files adapted from https://www.models-resource.com/pc_computer/dragonquestheroes/model/17210/ ("These resources are collected for personal projects and non-commercial work." https://www.models-resource.com/about/)
+  * Slime.obj and texture files adapted from https://www.models-resource.com/pc_computer/dragonquestheroes/model/17210/ ("These resources are collected for personal projects and non-commercial work." https://www.models-resource.com/about/)
 
